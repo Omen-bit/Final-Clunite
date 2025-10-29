@@ -9,13 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+// This page is per-club; removed club selector
 import {
   Table,
   TableBody,
@@ -31,17 +25,26 @@ import Link from "next/link"
 export default function ManageAdminsPage() {
   const { user: authUser } = useAuth()
   const [loading, setLoading] = useState(true)
-  const [userClubs, setUserClubs] = useState<any[]>([])
   const [selectedClubId, setSelectedClubId] = useState<string>("")
   const [admins, setAdmins] = useState<any[]>([])
   const [isOwner, setIsOwner] = useState(false)
   const [newAdminEmail, setNewAdminEmail] = useState("")
   const [adding, setAdding] = useState(false)
+  const [clubContactEmail, setClubContactEmail] = useState<string | null>(null)
+  const [clubName, setClubName] = useState<string>("")
+  const [ownerEmail, setOwnerEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    if (authUser) {
-      loadUserClubs()
+    if (!authUser) return
+    const sid = sessionStorage.getItem('selectedClubId') || ""
+    const sname = sessionStorage.getItem('selectedClubName') || ""
+    if (!sid) {
+      toast.error('Please select a club first')
+      window.location.href = '/dashboard/organizer/select-club'
+      return
     }
+    setSelectedClubId(sid)
+    setClubName(sname)
   }, [authUser])
 
   useEffect(() => {
@@ -50,31 +53,7 @@ export default function ManageAdminsPage() {
     }
   }, [selectedClubId])
 
-  const loadUserClubs = async () => {
-    try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('club_memberships')
-        .select(`
-          *,
-          club:clubs(*)
-        `)
-        .eq('user_id', authUser!.id)
-        .eq('role', 'admin')
-
-      if (error) throw error
-
-      setUserClubs((data || []).map((m: any) => m.club))
-      if (data && data.length > 0) {
-        setSelectedClubId(data[0].club_id)
-      }
-    } catch (err: any) {
-      console.error('Error loading clubs:', err)
-      toast.error('Failed to load clubs')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Removed loadUserClubs; page is strictly per selected club
 
   const loadClubAdmins = async () => {
     try {
@@ -107,8 +86,20 @@ export default function ManageAdminsPage() {
         throw error
       }
 
-      console.log('Loaded admins:', data)
       setAdmins(data || [])
+
+      // Load club info for official email display
+      const { data: club } = await supabase
+        .from('clubs')
+        .select('name, contact_email')
+        .eq('id', selectedClubId)
+        .single()
+      setClubContactEmail(club?.contact_email || null)
+      if (club?.name) setClubName(club.name)
+
+      // Owner official email from admins list
+      const owner = (data || []).find((a: any) => a.is_owner)
+      setOwnerEmail(owner?.user?.email || null)
     } catch (err: any) {
       console.error('Error loading admins:', err)
       toast.error('Failed to load admins')
@@ -217,7 +208,45 @@ export default function ManageAdminsPage() {
     }
   }
 
-  if (loading && userClubs.length === 0) {
+  const handleTransferOwnership = async (newOwnerUserId: string, newOwnerName: string) => {
+    if (!isOwner) {
+      toast.error('Only the current owner can transfer ownership')
+      return
+    }
+
+    if (!confirm(`Make ${newOwnerName} the new owner? You will remain an admin.`)) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      // Set new owner
+      const { error: setNewOwnerError } = await supabase
+        .from('club_memberships')
+        .update({ is_owner: true })
+        .eq('club_id', selectedClubId)
+        .eq('user_id', newOwnerUserId)
+      if (setNewOwnerError) throw setNewOwnerError
+
+      // Demote current owner to admin
+      const { error: demoteOldOwnerError } = await supabase
+        .from('club_memberships')
+        .update({ is_owner: false })
+        .eq('club_id', selectedClubId)
+        .eq('user_id', authUser!.id)
+      if (demoteOldOwnerError) throw demoteOldOwnerError
+
+      toast.success(`${newOwnerName} is now the owner`)
+      loadClubAdmins()
+    } catch (err: any) {
+      console.error('Error transferring ownership:', err)
+      toast.error('Failed to transfer ownership')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading && !selectedClubId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
@@ -225,17 +254,17 @@ export default function ManageAdminsPage() {
     )
   }
 
-  if (userClubs.length === 0) {
+  if (!selectedClubId) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-2xl mx-auto">
           <Card className="border-2 border-yellow-200 bg-yellow-50">
             <CardContent className="p-6 text-center">
-              <p className="text-yellow-900 font-medium mb-2">You are not an admin of any clubs</p>
-              <p className="text-yellow-700 text-sm mb-4">Create a club or verify with a PIN first</p>
-              <Link href="/dashboard/organizer/create-club">
+              <p className="text-yellow-900 font-medium mb-2">No club selected</p>
+              <p className="text-yellow-700 text-sm mb-4">Please select a club to manage admins</p>
+              <Link href="/dashboard/organizer/select-club">
                 <Button className="bg-yellow-600 hover:bg-yellow-700">
-                  Create Your First Club
+                  Select Club
                 </Button>
               </Link>
             </CardContent>
@@ -244,8 +273,6 @@ export default function ManageAdminsPage() {
       </div>
     )
   }
-
-  const selectedClub = userClubs.find(c => c.id === selectedClubId)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/20 p-6">
@@ -263,7 +290,13 @@ export default function ManageAdminsPage() {
                   </div>
                   <h1 className="text-4xl font-black">Manage Admins</h1>
                 </div>
-                <p className="text-emerald-50 text-lg">Add or remove club administrators for {selectedClub?.name}</p>
+                <p className="text-emerald-50 text-lg">Manage administrators for {clubName || 'Club'}</p>
+                {ownerEmail && (
+                  <p className="text-emerald-50/90 text-sm mt-1">Owner official email: {ownerEmail}</p>
+                )}
+                {clubContactEmail && (
+                  <p className="text-emerald-50/90 text-sm">Club official email: {clubContactEmail}</p>
+                )}
               </div>
               <Link href="/dashboard/organizer/host">
                 <Button className="bg-white/20 hover:bg-white/30 text-white border border-white/30 font-semibold px-6 py-3 rounded-xl backdrop-blur-sm hover:scale-105 transition-all duration-300">
@@ -274,30 +307,7 @@ export default function ManageAdminsPage() {
           </div>
         </div>
 
-        {/* Club Selector */}
-        <Card className="border-0 shadow-xl bg-white">
-          <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b">
-            <CardTitle className="flex items-center gap-2 text-emerald-900">
-              <Shield className="h-5 w-5" />
-              Select Club
-            </CardTitle>
-            <CardDescription>Choose which club to manage administrators</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <Select value={selectedClubId} onValueChange={setSelectedClubId}>
-              <SelectTrigger className="w-full h-12 border-2 border-emerald-200 focus:border-emerald-500">
-                <SelectValue placeholder="Select a club" />
-              </SelectTrigger>
-              <SelectContent>
-                {userClubs.map((club) => (
-                  <SelectItem key={club.id} value={club.id}>
-                    {club.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+        {/* Per-club page; no selector */}
 
         {/* Owner Status */}
         {!isOwner && (
@@ -367,7 +377,7 @@ export default function ManageAdminsPage() {
               Current Admins ({admins.length}/5)
             </CardTitle>
             <CardDescription>
-              People who can manage {selectedClub?.name}
+              People who can manage {clubName || 'this club'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -384,6 +394,7 @@ export default function ManageAdminsPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    {isOwner && <TableHead>Owner Actions</TableHead>}
                     <TableHead>Added</TableHead>
                     {isOwner && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
@@ -413,6 +424,19 @@ export default function ManageAdminsPage() {
                           </Badge>
                         )}
                       </TableCell>
+                      {isOwner && (
+                        <TableCell>
+                          {!admin.is_owner && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleTransferOwnership(admin.user_id, admin.user?.full_name || 'User')}
+                            >
+                              Make Owner
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="text-sm text-gray-600">
                         {admin.verified_via_pin ? 'Via PIN' : 'Invited'}
                       </TableCell>
