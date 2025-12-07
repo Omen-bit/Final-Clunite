@@ -1,50 +1,62 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy initialization to avoid build-time errors
+const getResend = () => {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  return new Resend(apiKey);
+};
 
 export async function POST(request: NextRequest) {
   try {
     // Parse and validate request body
-    let body
+    let body;
     try {
-      body = await request.json()
+      body = await request.json();
     } catch (parseError) {
-      console.error('JSON parse error:', parseError)
+      console.error('JSON parse error:', parseError);
       return NextResponse.json(
         { success: false, error: 'Invalid request body' },
         { status: 400 }
-      )
+      );
     }
 
-    const { email, clubName, pin } = body
+    const { email, clubName, pin } = body;
 
     // Validate required fields
     if (!email || !clubName || !pin) {
-      console.error('Missing required fields:', { email: !!email, clubName: !!clubName, pin: !!pin })
+      console.error('Missing required fields:', {
+        email: !!email,
+        clubName: !!clubName,
+        pin: !!pin,
+      });
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: email, clubName, or pin' },
+        {
+          success: false,
+          error: 'Missing required fields: email, clubName, or pin',
+        },
         { status: 400 }
-      )
+      );
     }
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.error('Invalid email format:', email)
+      console.error('Invalid email format:', email);
       return NextResponse.json(
         { success: false, error: 'Invalid email format' },
         { status: 400 }
-      )
+      );
     }
 
     // Validate PIN format (8 digits)
     if (!/^\d{8}$/.test(pin)) {
-      console.error('Invalid PIN format:', pin)
+      console.error('Invalid PIN format:', pin);
       return NextResponse.json(
         { success: false, error: 'PIN must be exactly 8 digits' },
         { status: 400 }
-      )
+      );
     }
 
     // Log PIN for debugging
@@ -57,53 +69,53 @@ export async function POST(request: NextRequest) {
       PIN: ${pin}
       Timestamp: ${new Date().toISOString()}
       ========================================
-    `)
-
-    // Check if Resend API key is configured
-    if (!process.env.RESEND_API_KEY) {
-      console.warn('RESEND_API_KEY not configured. Email not sent.')
-      return NextResponse.json({ 
-        success: true, 
-        message: 'PIN logged (email service not configured)' 
-      })
-    }
+    `);
 
     // Send email via Resend
+    const resend = getResend();
+    if (!resend) {
+      console.warn('RESEND_API_KEY not configured. Email not sent.');
+      return NextResponse.json({
+        success: true,
+        message: 'PIN logged (email service not configured)',
+      });
+    }
+
     try {
       const { data, error } = await resend.emails.send({
         from: 'Clunite <onboarding@resend.dev>', // Use your verified domain in production
         to: email,
         subject: `Your Club Verification PIN - ${clubName}`,
-        html: emailTemplate(clubName, pin)
-      })
+        html: emailTemplate(clubName, pin),
+      });
 
       if (error) {
-        console.error('Resend error:', error)
+        console.error('Resend error:', error);
         return NextResponse.json(
           { success: false, error: `Email service error: ${error.message}` },
           { status: 500 }
-        )
+        );
       }
 
-      console.log('Email sent successfully to:', email, 'ID:', data?.id)
-      return NextResponse.json({ 
-        success: true, 
-        message: 'PIN sent successfully via email' 
-      })
+      console.log('Email sent successfully to:', email, 'ID:', data?.id);
+      return NextResponse.json({
+        success: true,
+        message: 'PIN sent successfully via email',
+      });
     } catch (emailError: any) {
-      console.error('Email service error:', emailError)
+      console.error('Email service error:', emailError);
       return NextResponse.json(
         { success: false, error: `Email service error: ${emailError.message}` },
         { status: 500 }
-      )
+      );
     }
   } catch (error: any) {
-    console.error('Error sending PIN:', error)
-    const errorMessage = error.message || error.toString() || 'Unknown error'
+    console.error('Error sending PIN:', error);
+    const errorMessage = error.message || error.toString() || 'Unknown error';
     return NextResponse.json(
       { success: false, error: `Failed to send PIN: ${errorMessage}` },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -155,5 +167,5 @@ function emailTemplate(clubName: string, pin: string) {
       </div>
     </body>
     </html>
-  `
+  `;
 }

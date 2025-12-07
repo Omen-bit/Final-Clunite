@@ -10,9 +10,9 @@
 
 @layer base {
   :root {
-    /* Updated font variables to use Inter and Poppins */
+    /* Use Inter for all text */
     --font-sans: var(--font-inter);
-    --font-heading: var(--font-poppins);
+    --font-heading: var(--font-inter);
     --background: 220 40% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
@@ -88,18 +88,55 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-family:
+      var(--font-inter),
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
   }
 
-  /* Added typography improvements */
+  /* Added typography improvements - Use Inter for all text */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
-    font-family: var(--font-heading);
+    font-family:
+      var(--font-inter),
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
     @apply font-semibold leading-tight text-balance;
+  }
+
+  p,
+  span,
+  div,
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  label {
+    font-family:
+      var(--font-inter),
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
   }
 
   h1 {
