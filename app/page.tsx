@@ -1,5 +1,4 @@
 'use client';
-import dynamic from 'next/dynamic';
 import { SimpleCarousel } from '@/components/ui/animated-feature-carousel';
 import { useState, useEffect, useRef } from 'react';
 import { CountAnimation } from '@/components/ui/count-animation';
@@ -18,10 +17,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-const EtherealBeamsHero = dynamic(
-  () => import('@/components/ui/ethereal-beams-hero'),
-  { ssr: false }
-);
+import EtherealBeamsHero from '@/components/ui/ethereal-beams-hero';
 import FeaturesCards from '@/components/ui/feature-shader-cards';
 import { BGGrid } from '@/components/ui/bg-grid';
 import {

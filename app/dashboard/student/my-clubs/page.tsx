@@ -1,388 +1,488 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Search, Plus, Users, Calendar, Star, ExternalLink } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useClubs, useUserClubs, joinClubInstant, leaveClubInstant } from "@/hooks/useClubs"
-import { useEventsForClubIds } from "@/hooks/useEvents"
-import Link from "next/link"
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Search,
+  Plus,
+  Users,
+  Calendar,
+  Star,
+  ExternalLink,
+  ChevronRight,
+  Sparkles,
+  ShieldCheck,
+  ArrowUpRight,
+  Info,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
 
-// Mock user ID - in real app, this would come from auth
-const CURRENT_USER_ID = "550e8400-e29b-41d4-a716-446655440001"
+/**
+ * STANDALONE PREVIEW CONFIGURATION
+ * For use in your local project, please restore the original imports:
+ * * import Link from 'next/link';
+ * import { useClubs, useUserClubs, joinClubInstant, leaveClubInstant } from '@/hooks/useClubs';
+ * import { useEventsForClubIds } from '@/hooks/useEvents';
+ */
 
-export default function MyClubsPage() {
-  const { clubs: allClubs, loading: allClubsLoading, refetch: refetchAllClubs } = useClubs()
-  const { clubs: userClubs, loading: userClubsLoading, refetch: refetchUserClubs } = useUserClubs(CURRENT_USER_ID)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [joiningClubId, setJoiningClubId] = useState<string | null>(null)
-  const [tabValue, setTabValue] = useState("joined")
+// --- MOCK DATA FOR PREVIEW ---
+const MOCK_CLUBS = [
+  {
+    id: '1',
+    name: 'Design Ethos',
+    category: 'Creative',
+    description:
+      'A community for design thinking and digital product enthusiasts.',
+    members_count: 124,
+    events_hosted_count: 12,
+    credibility_score: 4.9,
+    banner_url:
+      'https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&q=80&w=800',
+    is_verified: true,
+    college: 'School of Arts',
+  },
+  {
+    id: '2',
+    name: 'Algorithmic Traders',
+    category: 'Finance',
+    description:
+      'Exploring quantitative finance and high-frequency trading strategies.',
+    members_count: 89,
+    events_hosted_count: 5,
+    credibility_score: 4.7,
+    banner_url:
+      'https://images.unsplash.com/photo-1611974717482-5828edab9ef4?auto=format&fit=crop&q=80&w=800',
+    is_verified: true,
+    college: 'Business Faculty',
+  },
+  {
+    id: '3',
+    name: 'Rocketry Lab',
+    category: 'Engineering',
+    description:
+      'Designing and building sub-orbital rockets for scientific research.',
+    members_count: 45,
+    events_hosted_count: 8,
+    credibility_score: 4.8,
+    banner_url:
+      'https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&q=80&w=800',
+    is_verified: false,
+    college: 'Engineering Hub',
+  },
+  {
+    id: '4',
+    name: 'Wellness Circle',
+    category: 'Health',
+    description: 'Focusing on student mental health and physical well-being.',
+    members_count: 210,
+    events_hosted_count: 20,
+    credibility_score: 4.5,
+    banner_url:
+      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800',
+    is_verified: true,
+    college: 'Main Campus',
+  },
+];
 
-  const joinedClubIds = userClubs.map((c) => c.id)
-  const { events: joinedClubsEvents, loading: eventsLoading, refetch: refetchJoinedEvents } = useEventsForClubIds(joinedClubIds)
+const MOCK_EVENTS = [
+  {
+    id: 'e1',
+    title: 'System Design 101',
+    club: { name: 'Design Ethos' },
+    start_date: '2025-01-10T10:00:00Z',
+    current_participants: 45,
+    max_participants: 60,
+    image_url:
+      'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800',
+  },
+  {
+    id: 'e2',
+    title: 'Winter Hackathon',
+    club: { name: 'Rocketry Lab' },
+    start_date: '2025-01-15T09:00:00Z',
+    current_participants: 120,
+    max_participants: 150,
+    image_url:
+      'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&q=80&w=800',
+  },
+];
 
-  // Filter clubs based on search
-  const filteredUserClubs = userClubs.filter(
-    (club) =>
-      club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      club.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      club.category.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+// Mock Link component for Canvas preview
+const Link = ({ href, children, className }: any) => (
+  <a
+    href={href}
+    className={className}
+    onClick={(e) => {
+      if (href.startsWith('#')) e.preventDefault();
+      console.log(`Navigating to: ${href}`);
+    }}
+  >
+    {children}
+  </a>
+);
 
-  const filteredAvailableClubs = allClubs.filter((club) => {
-    const isNotMember = !userClubs.some((userClub) => userClub.id === club.id)
-    const matchesSearch =
-      club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      club.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      club.category.toLowerCase().includes(searchTerm.toLowerCase())
-    return isNotMember && matchesSearch
-  })
+const CURRENT_USER_ID = '550e8400-e29b-41d4-a716-446655440001';
 
-  const ClubCard = ({ club, isMember = false }: { club: any; isMember?: boolean }) => (
-    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-slate-200 hover:border-indigo-200 hover:-translate-y-1">
-      <CardHeader className="p-0 relative overflow-hidden">
-        <div className="h-32 relative">
-          {club.banner_url ? (
-            <>
-              <img 
-                src={club.banner_url} 
-                alt={club.name}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-            </>
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 flex items-center justify-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg">
-                {club.name.charAt(0)}
-              </div>
-            </div>
-          )}
-          {club.is_verified && (
-            <div className="absolute top-3 right-3">
-              <Badge className="bg-green-100 text-green-800 border-green-200 font-semibold">✓ Verified</Badge>
-            </div>
-          )}
-          <div className="absolute bottom-3 left-3">
-            <Badge variant="secondary" className="bg-white/90 text-slate-700 font-medium">
-              {club.category}
-            </Badge>
-          </div>
+export default function App() {
+  // --- STATE MANAGEMENT (Simulated Hooks) ---
+  const [allClubs, setAllClubs] = useState(MOCK_CLUBS);
+  const [userClubs, setUserClubs] = useState(MOCK_CLUBS.slice(0, 2));
+  const [allClubsLoading, setAllClubsLoading] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [tabValue, setTabValue] = useState<'joined' | 'discover'>('joined');
+  const [joiningClubId, setJoiningClubId] = useState<string | null>(null);
+
+  const joinedClubIds = useMemo(() => userClubs.map((c) => c.id), [userClubs]);
+
+  // Simulated events hook results
+  const joinedClubsEvents = MOCK_EVENTS;
+
+  const filteredUserClubs = useMemo(
+    () =>
+      userClubs.filter(
+        (club) =>
+          club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (club.description?.toLowerCase() ?? '').includes(
+            searchTerm.toLowerCase()
+          ) ||
+          club.category.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [userClubs, searchTerm]
+  );
+
+  const filteredAvailableClubs = useMemo(
+    () =>
+      allClubs.filter((club) => {
+        const isNotMember = !userClubs.some((c) => c.id === club.id);
+        const matchesSearch =
+          club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (club.description?.toLowerCase() ?? '').includes(
+            searchTerm.toLowerCase()
+          ) ||
+          club.category.toLowerCase().includes(searchTerm.toLowerCase());
+        return isNotMember && matchesSearch;
+      }),
+    [allClubs, userClubs, searchTerm]
+  );
+
+  // --- ACTIONS (Simulated API calls) ---
+  const handleJoin = async (id: string) => {
+    try {
+      setJoiningClubId(id);
+      await new Promise((resolve) => setTimeout(resolve, 600)); // Simulate API delay
+      const club = allClubs.find((c) => c.id === id);
+      if (club) {
+        setUserClubs((prev) => [...prev, club]);
+      }
+      setTabValue('joined');
+    } finally {
+      setJoiningClubId(null);
+    }
+  };
+
+  const handleLeave = async (id: string) => {
+    setUserClubs((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  if (allClubsLoading && userClubs.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
+        <div className="flex flex-col items-center gap-4">
+          <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+          <p className="text-zinc-500 font-medium">Loading your community...</p>
         </div>
-      </CardHeader>
-
-      <CardContent className="p-6 space-y-4">
-        <div className="space-y-2">
-          <h3 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-            {club.name}
-          </h3>
-          <p className="text-sm text-slate-600 line-clamp-2">{club.description}</p>
-        </div>
-
-        <div className="flex items-center justify-between text-sm text-slate-600">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1">
-              <Users className="h-4 w-4" />
-              <span>{club.members_count} members</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Calendar className="h-4 w-4" />
-              <span>{club.events_hosted_count} events</span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-1">
-            <Star className="h-4 w-4 text-yellow-500 fill-current" />
-            <span className="font-semibold">{club.credibility_score?.toFixed?.(1) ?? "0.0"}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-          <div className="text-sm text-slate-500">{club.college}</div>
-          <div className="flex space-x-2">
-            <Link href={`/dashboard/student/my-clubs/${club.id}`}>
-              <Button variant="outline" size="sm" className="group bg-transparent">
-                View Details
-                <ExternalLink className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            {!isMember && (
-              <Button
-                size="sm"
-                disabled={joiningClubId === club.id}
-                onClick={async () => {
-                  try {
-                    setJoiningClubId(club.id)
-                    await joinClubInstant(CURRENT_USER_ID, club.id)
-                  } finally {
-                    setJoiningClubId(null)
-                    await Promise.all([refetchUserClubs(), refetchAllClubs()])
-                    await refetchJoinedEvents()
-                    setTabValue("joined")
-                  }
-                }}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
-              >
-                <Plus className="mr-1 h-3 w-3" />
-                {joiningClubId === club.id ? "Joining..." : "Join"}
-              </Button>
-            )}
-            {isMember && (
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={async () => {
-                  await leaveClubInstant(CURRENT_USER_ID, club.id)
-                  await Promise.all([refetchUserClubs(), refetchAllClubs()])
-                  await refetchJoinedEvents()
-                  setTabValue("discover")
-                }}
-              >
-                Remove
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-
-  const ClubSkeleton = () => (
-    <Card className="overflow-hidden">
-      <CardHeader className="p-0">
-        <Skeleton className="h-32 w-full" />
-      </CardHeader>
-      <CardContent className="p-6 space-y-4">
-        <Skeleton className="h-6 w-3/4" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
-        <div className="flex justify-between">
-          <Skeleton className="h-8 w-20" />
-          <Skeleton className="h-8 w-24" />
-        </div>
-      </CardContent>
-    </Card>
-  )
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-black text-slate-900 mb-2">My Clubs</h1>
-            <p className="text-lg text-slate-600">Manage your club memberships and discover new communities</p>
+    <div className="min-h-screen bg-[#FAFAFA] text-zinc-900 font-sans selection:bg-indigo-100">
+      {/* Subtle Background Accent */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-5%] left-[-2%] w-[30%] h-[30%] bg-indigo-50/60 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-6 pt-6 pb-12 lg:pt-8 lg:pb-16 space-y-10">
+        {/* HEADER SECTION */}
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-600 text-[11px] font-semibold uppercase tracking-tight">
+              <Sparkles className="w-3 h-3" />
+              Student Portal
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-zinc-950">
+              My Clubs
+            </h1>
+            <p className="text-lg text-zinc-500 max-w-md leading-relaxed">
+              Manage your memberships and explore new communities on campus.
+            </p>
           </div>
-          <div className="flex items-center space-x-4">
-            <Badge className="bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border-indigo-200 px-4 py-2 text-sm font-semibold">
-              {userClubs.length} Clubs Joined
-            </Badge>
+
+          <div className="flex items-center gap-3">
             <Link href="/dashboard/student/my-clubs/discover">
-              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold">
-                <Plus className="mr-2 h-4 w-4" />
+              <button className="flex items-center gap-2 px-5 py-2.5 bg-zinc-950 text-white rounded-xl font-medium hover:bg-zinc-800 transition-all active:scale-[0.98] shadow-sm shadow-zinc-200">
+                <Plus className="w-4 h-4" />
                 Discover Clubs
-              </Button>
+              </button>
             </Link>
           </div>
+        </header>
+
+        {/* CONTROLS (Sticky) */}
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between sticky top-4 z-30 p-1.5 bg-white/90 backdrop-blur-md border border-zinc-200 shadow-sm rounded-2xl">
+          <div className="flex bg-zinc-100 p-1 rounded-xl w-full md:w-auto">
+            <button
+              onClick={() => setTabValue('joined')}
+              className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                tabValue === 'joined'
+                  ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
+                  : 'text-zinc-500 hover:text-zinc-700'
+              }`}
+            >
+              Joined ({userClubs.length})
+            </button>
+            <button
+              onClick={() => setTabValue('discover')}
+              className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                tabValue === 'discover'
+                  ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
+                  : 'text-zinc-500 hover:text-zinc-700'
+              }`}
+            >
+              Explore ({filteredAvailableClubs.length})
+            </button>
+          </div>
+
+          <div className="relative w-full md:w-80 group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-indigo-600 transition-colors" />
+            <input
+              type="text"
+              placeholder="Search by name or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500/20 rounded-xl text-sm transition-all outline-none"
+            />
+          </div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
-          <Input
-            placeholder="Search clubs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-white border-slate-200 focus:border-indigo-300 transition-colors"
-          />
+        {/* CLUB LISTINGS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {tabValue === 'joined' ? (
+            filteredUserClubs.length > 0 ? (
+              filteredUserClubs.map((club) => (
+                <ClubCard
+                  key={club.id}
+                  club={club}
+                  isMember
+                  onAction={() => handleLeave(club.id)}
+                />
+              ))
+            ) : (
+              <EmptyState
+                icon={<Info className="w-7 h-7" />}
+                message={
+                  searchTerm
+                    ? 'No matches found.'
+                    : "You haven't joined any clubs yet."
+                }
+              />
+            )
+          ) : filteredAvailableClubs.length > 0 ? (
+            filteredAvailableClubs.map((club) => (
+              <ClubCard
+                key={club.id}
+                club={club}
+                loading={joiningClubId === club.id}
+                onAction={() => handleJoin(club.id)}
+              />
+            ))
+          ) : (
+            <EmptyState
+              icon={<Search className="w-7 h-7" />}
+              message="No new clubs found to join."
+            />
+          )}
         </div>
-      </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
-          <CardContent className="p-6 text-center">
-            <div className="text-3xl font-black text-indigo-600 mb-2">{userClubs.length}</div>
-            <div className="text-sm font-semibold text-indigo-700">Clubs Joined</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardContent className="p-6 text-center">
-            <div className="text-3xl font-black text-purple-600 mb-2">
-              {userClubs.reduce((sum, club) => sum + (club.events_hosted_count || 0), 0)}
-            </div>
-            <div className="text-sm font-semibold text-purple-700">Total Events</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200">
-          <CardContent className="p-6 text-center">
-            <div className="text-3xl font-black text-pink-600 mb-2">
-              {userClubs.reduce((sum, club) => sum + (club.members_count || 0), 0)}
-            </div>
-            <div className="text-sm font-semibold text-pink-700">Network Size</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-6 text-center">
-            <div className="text-3xl font-black text-green-600 mb-2">
-              {userClubs.length > 0
-                ? (
-                    userClubs.reduce((sum, club) => sum + (club.credibility_score || 0), 0) / userClubs.length
-                  ).toFixed(1)
-                : "0.0"}
-            </div>
-            <div className="text-sm font-semibold text-green-700">Avg Rating</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={tabValue} onValueChange={setTabValue} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="joined" className="font-semibold">
-            My Clubs ({userClubs.length})
-          </TabsTrigger>
-          <TabsTrigger value="discover" className="font-semibold">
-            Discover ({filteredAvailableClubs.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="joined" className="space-y-6">
-          {userClubsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <ClubSkeleton key={i} />
-              ))}
-            </div>
-          ) : filteredUserClubs.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">🏛️</div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                {searchTerm ? "No clubs found" : "No clubs joined yet"}
-              </h3>
-              <p className="text-slate-600 mb-6">
-                {searchTerm
-                  ? "Try adjusting your search terms to find clubs."
-                  : "Start by discovering and joining clubs that match your interests."}
-              </p>
-              <Link href="/dashboard/student/my-clubs/discover">
-                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Discover Clubs
-                </Button>
+        {/* EVENTS SECTION */}
+        {tabValue === 'joined' && userClubs.length > 0 && (
+          <section className="pt-16 border-t border-zinc-200 space-y-8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2.5">
+                <Calendar className="w-5 h-5 text-indigo-600" />
+                Active Events
+              </h2>
+              <Link
+                href="/dashboard/student/events"
+                className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+              >
+                All Events <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredUserClubs.map((club) => (
-                  <ClubCard key={club.id} club={club} isMember={true} />
-                ))}
-              </div>
 
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold text-slate-900">Events from your clubs</h2>
-                {eventsLoading ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <ClubSkeleton key={i} />
-                    ))}
-                  </div>
-                ) : joinedClubsEvents.length === 0 ? (
-                  <div className="text-center py-8 text-slate-600">No events yet from your clubs.</div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {joinedClubsEvents.map((event) => (
-                      <Card key={event.id} className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-slate-200 hover:border-indigo-200 hover:-translate-y-1">
-                        <CardHeader className="p-0 relative overflow-hidden">
-                          <div className="h-32 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 flex items-center justify-center relative overflow-hidden">
-                            {event.image_url ? (
-                              <img 
-                                src={event.image_url} 
-                                alt={event.title} 
-                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none'
-                                  e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                                }}
-                              />
-                            ) : null}
-                            <div className={`text-5xl opacity-20 ${event.image_url ? 'hidden' : ''}`}>📅</div>
-                            <div className="absolute top-3 left-3 z-10">
-                              <Badge variant="secondary" className="bg-white/90 text-slate-700 backdrop-blur-sm">
-                                {event.club?.name}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-6 space-y-4">
-                          <div className="space-y-2">
-                            <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2">
-                              {event.title}
-                            </h3>
-                            <p className="text-sm text-slate-600 line-clamp-2">{event.description}</p>
-                          </div>
-                          <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-sm text-slate-600">
-                            <div className="flex items-center space-x-4">
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>{new Date(event.start_date).toLocaleDateString()}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Users className="h-4 w-4" />
-                                <span>
-                                  {event.current_participants}
-                                  {event.max_participants && `/${event.max_participants}`} registered
-                                </span>
-                              </div>
-                            </div>
-                            <Link href={`/dashboard/student/events/${event.id}`}>
-                              <Button variant="outline" size="sm" className="group bg-transparent">
-                                View Details
-                                <ExternalLink className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                              </Button>
-                            </Link>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </TabsContent>
-
-        <TabsContent value="discover" className="space-y-6">
-          {allClubsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <ClubSkeleton key={i} />
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {joinedClubsEvents.length > 0 ? (
+                joinedClubsEvents.map((e) => (
+                  <EventListItem key={e.id} event={e} />
+                ))
+              ) : (
+                <div className="col-span-full p-10 bg-white border border-dashed border-zinc-200 rounded-2xl text-center">
+                  <p className="text-zinc-400 text-sm">
+                    No upcoming events scheduled right now.
+                  </p>
+                </div>
+              )}
             </div>
-          ) : filteredAvailableClubs.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">No new clubs found</h3>
-              <p className="text-slate-600 mb-6">
-                {searchTerm
-                  ? "Try adjusting your search terms to find more clubs."
-                  : "You've already joined all available clubs! Check back later for new ones."}
-              </p>
-              {searchTerm && <Button onClick={() => setSearchTerm("")}>Clear Search</Button>}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredAvailableClubs.map((club) => (
-                <ClubCard key={club.id} club={club} isMember={false} />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          </section>
+        )}
+      </div>
     </div>
-  )
+  );
+}
+
+// --- SUB-COMPONENTS ---
+
+function ClubCard({ club, isMember, loading, onAction }: any) {
+  return (
+    <div className="group bg-white border border-zinc-200 rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-zinc-200/50 transition-all duration-300 hover:-translate-y-1 flex flex-col">
+      <div className="h-40 relative overflow-hidden">
+        {club.banner_url ? (
+          <img
+            src={club.banner_url}
+            alt={club.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full bg-zinc-100 flex items-center justify-center">
+            <div className="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
+              {club.name.charAt(0)}
+            </div>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+
+        <div className="absolute top-3.5 left-3.5 flex gap-2">
+          <span className="px-2.5 py-0.5 bg-white/95 backdrop-blur-sm rounded-md text-[10px] font-bold uppercase tracking-wide text-zinc-800 border border-white">
+            {club.category}
+          </span>
+          {club.is_verified && (
+            <span className="flex items-center gap-1 px-2.5 py-0.5 bg-indigo-600 rounded-md text-[10px] font-bold uppercase tracking-wide text-white">
+              <ShieldCheck className="w-3 h-3" />
+              Verified
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="p-6 space-y-5 flex-1 flex flex-col justify-between">
+        <div className="space-y-1.5">
+          <h3 className="text-lg font-bold text-zinc-900 group-hover:text-indigo-600 transition-colors truncate">
+            {club.name}
+          </h3>
+          <p className="text-sm text-zinc-500 leading-relaxed line-clamp-2">
+            {club.description ||
+              `Explore opportunities within the ${club.category} community.`}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between py-3 border-y border-zinc-50 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <Users className="w-3.5 h-3.5" />
+              {club.members_count}
+            </span>
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" />
+              {club.events_hosted_count}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-zinc-900">
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            {club.credibility_score?.toFixed(1) || '0.0'}
+          </div>
+        </div>
+
+        <div className="flex gap-2.5 pt-1">
+          <Link
+            href={`/dashboard/student/my-clubs/${club.id}`}
+            className="flex-1"
+          >
+            <button className="w-full px-4 py-2 bg-zinc-50 text-zinc-900 rounded-xl text-xs font-bold border border-zinc-200 hover:bg-zinc-100 transition-colors">
+              Details
+            </button>
+          </Link>
+
+          <button
+            onClick={onAction}
+            disabled={loading}
+            className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.97] ${
+              isMember
+                ? 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100'
+                : 'bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm'
+            }`}
+          >
+            {loading ? 'Processing...' : isMember ? 'Leave' : 'Join Club'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EventListItem({ event }: any) {
+  return (
+    <div className="flex items-center gap-4 p-4 bg-white border border-zinc-200 rounded-xl hover:border-indigo-200 hover:shadow-md transition-all group">
+      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative">
+        <img
+          src={event.image_url}
+          alt={event.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest mb-1 truncate">
+          {event.club?.name}
+        </div>
+        <h4 className="font-bold text-zinc-900 truncate text-sm mb-1">
+          {event.title}
+        </h4>
+        <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-medium">
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {new Date(event.start_date).toLocaleDateString()}
+          </span>
+          <span className="w-0.5 h-0.5 rounded-full bg-zinc-300" />
+          <span className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            {event.current_participants}
+          </span>
+        </div>
+      </div>
+
+      <Link href={`/dashboard/student/events/${event.id}`}>
+        <button className="p-2.5 bg-zinc-50 text-zinc-400 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+          <ArrowUpRight className="w-4 h-4" />
+        </button>
+      </Link>
+    </div>
+  );
+}
+
+function EmptyState({
+  icon,
+  message,
+}: {
+  icon: React.ReactNode;
+  message: string;
+}) {
+  return (
+    <div className="col-span-full py-20 flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="w-12 h-12 bg-white border border-zinc-200 rounded-xl flex items-center justify-center text-zinc-300 shadow-sm">
+        {icon}
+      </div>
+      <p className="text-zinc-400 text-sm font-medium">{message}</p>
+    </div>
+  );
 }
