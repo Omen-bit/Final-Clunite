@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
     full_name VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL CHECK (role IN ('student', 'organizer', 'admin')),
     college VARCHAR(255) NOT NULL,
+    branch TEXT,
+    gender VARCHAR(50),
     avatar_url TEXT,
     bio TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

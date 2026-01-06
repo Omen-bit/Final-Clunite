@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getUserFromDatabase } from '@/lib/sync-user';
+import { getUserAvatarUrl } from '@/lib/avatar-utils';
 
 import {
   Card,
@@ -121,6 +122,8 @@ export default function StudentDashboard() {
     college: userData?.college || 'Your College',
   };
 
+  const avatarUrl = getUserAvatarUrl(userData);
+
   return (
     <div className="min-h-screen bg-[#f5f5f7] px-8 py-6 space-y-10">
       {/* HERO */}
@@ -147,12 +150,14 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        <div className="hidden lg:block absolute top-0 right-0 bottom-0 w-72">
-          <img
-            src="/user_greet.png"
-            alt="Dashboard illustration"
-            className="w-full h-full  rounded-r-2xl"
-          />
+        <div className="hidden lg:block absolute top-0 right-0 bottom-0 w-120 flex items-center justify-end pr-6">
+          <div className="h-full w-full max-w-[300px] flex items-center justify-center">
+            <img
+              src={avatarUrl || '/user_greet.png'}
+              alt="Dashboard illustration"
+              className="h-full w-full object-contain object-bottom"
+            />
+          </div>
         </div>
       </div>
 

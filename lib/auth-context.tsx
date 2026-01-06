@@ -4,11 +4,12 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { useRouter } from 'next/navigation'
+import { getAvatarUrlByGender } from './avatar-utils'
 
 interface AuthContextType {
   user: User | null
   loading: boolean
-  signUp: (email: string, password: string, fullName: string, college: string, branch?: string) => Promise<{ error: any }>
+  signUp: (email: string, password: string, fullName: string, college: string, branch?: string, gender?: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
 }
@@ -21,7 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   // Ensure user exists in database
-  const ensureUserInDatabase = async (authUser: User, additionalData?: { college?: string, branch?: string }) => {
+  const ensureUserInDatabase = async (authUser: User, additionalData?: { college?: string, branch?: string, gender?: string }) => {
     try {
       // Check if user exists
       const { data: existingUser, error: checkError } = await supabase
@@ -40,6 +41,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (checkError && checkError.code === 'PGRST116') {
         console.log('Creating user record in database...')
         
+        // Get gender from additionalData or user metadata
+        const userGender = additionalData?.gender || authUser.user_metadata?.gender || null
+        // Get avatar URL based on gender (or use custom avatar if provided)
+        const avatarUrl = authUser.user_metadata?.avatar_url || getAvatarUrlByGender(userGender)
+        
         const { error: insertError } = await supabase
           .from('users')
           .insert({
@@ -56,7 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             branch: additionalData?.branch || 
                     authUser.user_metadata?.branch || 
                     null,
-            avatar_url: authUser.user_metadata?.avatar_url || null,
+            gender: userGender,
+            avatar_url: avatarUrl,
             bio: null
           })
 
@@ -80,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Sign up new user
-  const signUp = async (email: string, password: string, fullName: string, college: string, branch?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, college: string, branch?: string, gender?: string) => {
     try {
       // Create auth user
       const { data, error: signUpError } = await supabase.auth.signUp({
@@ -90,7 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             full_name: fullName,
             college: college,
-            branch: branch || null
+            branch: branch || null,
+            gender: gender || null
           }
         }
       })
@@ -101,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.user) {
         // Create user in database
-        const result = await ensureUserInDatabase(data.user, { college, branch })
+        const result = await ensureUserInDatabase(data.user, { college, branch, gender })
         
         if (!result.success) {
           return { error: result.error }
@@ -128,6 +136,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
+        // Get user from database to check gender and update avatar if needed
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('gender, avatar_url')
+          .eq('id', data.user.id)
+          .single()
+
+        // If user has gender but no avatar_url, update it based on gender
+        if (dbUser?.gender && !dbUser.avatar_url) {
+          const genderBasedAvatar = getAvatarUrlByGender(dbUser.gender)
+          if (genderBasedAvatar) {
+            await supabase
+              .from('users')
+              .update({ avatar_url: genderBasedAvatar })
+              .eq('id', data.user.id)
+          }
+        }
+
         // Ensure user exists in database (non-blocking - don't wait)
         ensureUserInDatabase(data.user).catch(err => {
           console.error('Background user sync failed:', err)
