@@ -6,10 +6,13 @@
 
 import { supabase } from './supabase'
 import { User } from '@supabase/supabase-js'
+import { getAvatarUrlByGender } from './avatar-utils'
 
 interface EnsureUserOptions {
   college?: string
   role?: 'student' | 'organizer' | 'admin'
+  gender?: string
+  avatar_url?: string
 }
 
 /**
@@ -42,6 +45,12 @@ export async function ensureUserExists(
     if (checkError && checkError.code === 'PGRST116') {
       console.log('⚠️  User not found in database, creating user record for:', authUser.email)
       
+      // Get gender and determine avatar URL
+      const userGender = options?.gender || authUser.user_metadata?.gender || null
+      const avatarUrl = options?.avatar_url || 
+                        authUser.user_metadata?.avatar_url || 
+                        getAvatarUrlByGender(userGender)
+      
       // Create user record
       const { data: newUser, error: insertError } = await supabase
         .from('users')
@@ -56,7 +65,8 @@ export async function ensureUserExists(
           college: options?.college || 
                    authUser.user_metadata?.college || 
                    'Not specified',
-          avatar_url: authUser.user_metadata?.avatar_url || null,
+          gender: userGender,
+          avatar_url: avatarUrl,
           bio: null
         })
         .select()

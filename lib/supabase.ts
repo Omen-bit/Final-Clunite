@@ -31,6 +31,7 @@ export interface Database {
           role: "student" | "organizer" | "admin"
           college: string
           branch: string | null
+          gender: string | null
           avatar_url: string | null
           bio: string | null
           created_at: string
@@ -43,6 +44,7 @@ export interface Database {
           role: "student" | "organizer" | "admin"
           college: string
           branch?: string | null
+          gender?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -55,6 +57,7 @@ export interface Database {
           role?: "student" | "organizer" | "admin"
           college?: string
           branch?: string | null
+          gender?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Loader2, Mail, Lock, User, Building2, ArrowRight, AlertCircle, GraduationCap, BookOpen } from "lucide-react"
 
@@ -22,7 +23,8 @@ export default function SignupPage() {
     confirmPassword: "",
     fullName: "",
     college: "",
-    branch: ""
+    branch: "",
+    gender: ""
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +33,7 @@ export default function SignupPage() {
 
     try {
       // Validation
-      if (!formData.email || !formData.password || !formData.fullName || !formData.college) {
+      if (!formData.email || !formData.password || !formData.fullName || !formData.college || !formData.gender) {
         toast.error("Please fill all required fields")
         setLoading(false)
         return
@@ -64,7 +66,8 @@ export default function SignupPage() {
         formData.password,
         formData.fullName,
         formData.college,
-        formData.branch || undefined
+        formData.branch || undefined,
+        formData.gender || undefined
       )
 
       if (error) {
@@ -170,6 +173,26 @@ export default function SignupPage() {
                 <p className="text-xs text-gray-500">
                   Optional - helps personalize your experience
                 </p>
+              </div>
+
+              {/* Gender */}
+              <div className="space-y-2">
+                <Label htmlFor="gender" className="text-sm font-semibold text-gray-900">
+                  Gender *
+                </Label>
+                <Select
+                  value={formData.gender}
+                  onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                  required
+                >
+                  <SelectTrigger className="h-11 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all rounded-lg">
+                    <SelectValue placeholder="Select your gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Password */}
