@@ -18,62 +18,27 @@
 
 ## 📖 About
 
-**Clunite** is a comprehensive campus event and club management platform that bridges the gap between students and campus organizations. Built with modern web technologies, it provides an intuitive interface for students to discover events and clubs while empowering organizers with powerful management tools.
+**Clunite** is a campus event and club management platform that helps students discover events and clubs while empowering organizers with powerful management tools. Built with modern web technologies like Next.js, TypeScript, and Supabase.
 
-### 🎯 Key Highlights
+### Key Features
 
-- **Dual Dashboard System**: Separate interfaces for students and organizers
-- **Real-time Updates**: Live event and club information powered by Supabase
-- **Secure Authentication**: Email-based verification with PIN system for club creation
-- **Modern UI/UX**: Beautiful, responsive design using shadcn/ui components
-- **Analytics Dashboard**: Comprehensive insights for event organizers
-- **Image Management**: Seamless image uploads via Vercel Blob
-
----
-
-## ✨ Features
-
-### For Students 🧑‍🎓
-
-- **Event Discovery**: Browse and filter campus events by category, date, and club
-- **Club Exploration**: Discover clubs aligned with your interests
-- **Easy Registration**: One-click event registration with team support
-- **Personal Dashboard**: Track your registrations and club memberships
-- **Event Details**: Comprehensive event information with images and descriptions
-
-### For Organizers 🧑‍💼
-
-- **Club Management**: Create and manage clubs with official email verification
-- **Event Creation**: Host events with rich details, images, and registration tracking
-- **Analytics**: View registration statistics and engagement metrics
-- **Member Management**: Manage club memberships and roles
-- **Verification System**: Secure 8-digit PIN verification for club authenticity
-
-### Technical Features 🛠️
-
-- **Type-Safe**: Full TypeScript support with typed Supabase client
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
-- **Server Components**: Optimized performance with Next.js 14 App Router
-- **Form Validation**: Robust form handling with React Hook Form and Zod
-- **Real-time Data**: Live updates using Supabase subscriptions
-- **SEO Optimized**: Meta tags and structured data for better discoverability
+- **Dual Dashboard System** - Separate interfaces for students and organizers
+- **Event Discovery & Registration** - Browse, filter, and register for campus events
+- **Club Management** - Create, manage, and verify clubs with secure PIN authentication
+- **Real-time Updates** - Live data powered by Supabase
+- **Analytics Dashboard** - Comprehensive insights for event organizers
+- **Modern Responsive Design** - Beautiful UI built with shadcn/ui and Tailwind CSS
+- **Type-Safe Codebase** - Full TypeScript support with form validation
 
 ---
 
 ## 🧰 Tech Stack
 
-| Category | Technologies |
-|----------|-------------|
-| **Frontend** | Next.js 14, React 18, TypeScript |
-| **Styling** | Tailwind CSS, shadcn/ui, Radix UI |
-| **Backend** | Next.js API Routes, Supabase |
-| **Database** | PostgreSQL (via Supabase) |
-| **Authentication** | Supabase Auth |
-| **Storage** | Vercel Blob |
-| **Deployment** | Vercel |
-| **Analytics** | Vercel Analytics |
-| **Form Handling** | React Hook Form, Zod |
-| **Email** | Resend |
+**Frontend:** Next.js 14 • React 18 • TypeScript • Tailwind CSS • shadcn/ui  
+**Backend:** Next.js API Routes • Supabase  
+**Database:** PostgreSQL  
+**Storage:** Vercel Blob  
+**Tools:** React Hook Form • Zod • Vercel Analytics
 
 ---
 
@@ -89,12 +54,14 @@
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/clunite.git
    cd clunite
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    # or
@@ -104,182 +71,59 @@
    ```
 
 3. **Set up environment variables**
-   
-   Copy `.env.example` to `.env.local` and fill in your credentials:
-   ```bash
-   cp .env.example .env.local
-   ```
-   
-   Required environment variables:
+
+   Create `.env.local` with your credentials:
+
    ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
-   RESEND_API_KEY=your_resend_api_key
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+   BLOB_READ_WRITE_TOKEN=your_blob_token
+   RESEND_API_KEY=your_resend_key
    ```
 
 4. **Set up the database**
-   
-   Run the SQL scripts in your Supabase SQL editor:
-   ```bash
-   # In order:
-   scripts/init-database-v2.sql
-   scripts/functions.sql
-   scripts/rls-policies.sql
-   scripts/seed-data-v2.sql  # Optional: for demo data
-   ```
 
-5. **Run the development server**
+   Run these SQL scripts in your Supabase SQL editor (in order):
+   - `scripts/init-database-v2.sql`
+   - `scripts/functions.sql`
+   - `scripts/rls-policies.sql`
+   - `scripts/seed-data-v2.sql` (optional demo data)
+
+5. **Start the development server**
+
    ```bash
    npm run dev
-   # or
-   pnpm dev
    ```
 
-6. **Open your browser**
-   
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
----
-
-## 📁 Project Structure
-
-```
-clunite/
-├── app/                          # Next.js 14 App Router
-│   ├── api/                      # API routes
-│   │   ├── upload/               # Image upload endpoint
-│   │   └── send-club-pin/        # PIN verification email
-│   ├── dashboard/                # Dashboard layouts
-│   │   ├── organizer/            # Organizer dashboard
-│   │   │   ├── host/             # Event hosting
-│   │   │   └── analytics/        # Analytics views
-│   │   └── student/              # Student dashboard
-│   │       ├── browse/           # Event/club browsing
-│   │       ├── events/[id]/      # Event details
-│   │       └── my-clubs/         # User's clubs
-│   ├── layout.tsx                # Root layout
-│   ├── page.tsx                  # Landing page
-│   └── globals.css               # Global styles
-├── components/                   # React components
-│   ├── ui/                       # shadcn/ui components
-│   ├── app-sidebar.tsx           # Navigation sidebar
-│   └── dashboard-header.tsx      # Dashboard header
-├── hooks/                        # Custom React hooks
-│   ├── useClubs.ts               # Club data hooks
-│   └── useEvents.ts              # Event data hooks
-├── lib/                          # Utility libraries
-│   ├── supabase.ts               # Supabase client & types
-│   └── utils.ts                  # Helper functions
-├── public/                       # Static assets
-├── scripts/                      # Database scripts
-│   ├── init-database-v2.sql      # Database schema
-│   ├── functions.sql             # Database functions
-│   ├── rls-policies.sql          # Row Level Security
-│   └── seed-data-v2.sql          # Sample data
-├── styles/                       # Additional styles
-├── .env.example                  # Environment template
-├── .gitignore                    # Git ignore rules
-├── components.json               # shadcn/ui config
-├── next.config.mjs               # Next.js config
-├── package.json                  # Dependencies
-├── tailwind.config.ts            # Tailwind config
-└── tsconfig.json                 # TypeScript config
-```
-
----
-
-## 🗄️ Database Schema
-
-### Core Tables
-
-- **`users`**: User profiles with roles (student/organizer)
-- **`clubs`**: Club information with verification status
-- **`pending_clubs`**: Temporary storage for club verification
-- **`events`**: Event details with registration tracking
-- **`club_memberships`**: User-club relationships
-- **`event_registrations`**: Event registration records
-
-For detailed schema, see [`scripts/init-database-v2.sql`](./scripts/init-database-v2.sql)
-
----
-
-## 🔌 API Routes
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/upload` | POST | Upload images to Vercel Blob |
-| `/api/send-club-pin` | POST | Send verification PIN via email |
-
----
-
-## 📜 Available Scripts
-
-```bash
-npm run dev      # Start development server
-npm run build    # Build for production
-npm run start    # Start production server
-npm run lint     # Run ESLint
-```
+   Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ---
 
 ## 🚢 Deployment
 
-### Deploy to Vercel
+Deploy to Vercel in 3 steps:
 
-1. **Push your code to GitHub**
+1. Push your code to GitHub
+2. Import your repository on [vercel.com](https://vercel.com)
+3. Add environment variables and deploy
 
-2. **Import to Vercel**
-   - Go to [vercel.com](https://vercel.com)
-   - Import your repository
-   - Configure environment variables
-
-3. **Set environment variables**
-   ```
-   NEXT_PUBLIC_SUPABASE_URL
-   NEXT_PUBLIC_SUPABASE_ANON_KEY
-   BLOB_READ_WRITE_TOKEN
-   RESEND_API_KEY
-   ```
-
-4. **Deploy**
-   - Vercel will automatically build and deploy your application
-
-For detailed deployment instructions, see [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
-
----
-
-## 🎨 Demo
-
-> **Note**: Add screenshots or GIF demos of your application here
-
-### Student Dashboard
-![Student Dashboard](./public/screenshots/student-dashboard.png)
-
-### Organizer Dashboard
-![Organizer Dashboard](./public/screenshots/organizer-dashboard.png)
-
-### Event Creation
-![Event Creation](./public/screenshots/event-creation.png)
+For detailed instructions, see [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
 
 ---
 
 ## 📚 Documentation
 
-- [Setup Guide](./docs/SETUP.md) - Detailed setup instructions
-- [Database Guide](./docs/DATABASE.md) - Database schema and migrations
-- [API Documentation](./docs/API.md) - API endpoints and usage
-- [Contributing Guide](./CONTRIBUTING.md) - How to contribute
-- [Changelog](./CHANGELOG.md) - Version history
+- [Setup Guide](./docs/SETUP.md)
+- [Database Guide](./docs/DATABASE.md)
+- [API Documentation](./docs/API.md)
+- [Contributing Guide](./CONTRIBUTING.md)
+- [Changelog](./CHANGELOG.md)
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
-
-### Quick Contribution Steps
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -287,48 +131,10 @@ We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
----
-
-## 🐛 Bug Reports & Feature Requests
-
-Please use [GitHub Issues](https://github.com/yourusername/clunite/issues) to report bugs or request features.
+For bug reports or feature requests, use [GitHub Issues](https://github.com/yourusername/clunite/issues)
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
----
-
-## 👥 Authors
-
-- **Your Name** - *Initial work* - [@yourusername](https://github.com/yourusername)
-
----
-
-## 🙏 Acknowledgments
-
-- [Next.js](https://nextjs.org/) - The React Framework
-- [Supabase](https://supabase.com/) - Open source Firebase alternative
-- [shadcn/ui](https://ui.shadcn.com/) - Beautifully designed components
-- [Vercel](https://vercel.com/) - Deployment platform
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
-
----
-
-## 📞 Support
-
-For support, email support@clunite.com or join our [Discord community](https://discord.gg/clunite).
-
----
-
-<div align="center">
-
-**Made with ❤️ for campus communities**
-
-⭐ Star us on GitHub — it helps!
-
-[Report Bug](https://github.com/yourusername/clunite/issues) • [Request Feature](https://github.com/yourusername/clunite/issues)
-
-</div>
+MIT License - see [LICENSE](./LICENSE) for details
